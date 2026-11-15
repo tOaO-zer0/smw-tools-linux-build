@@ -1,0 +1,106 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. v1.0.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    name: Collect Builds and Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download AddmusicK
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build-addmusick.yml
+          branch: main
+          workflow_conclusion: success
+          name: addmusick
+          path: downloaded/addmusick
+
+      - name: Download Callisto
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build-callisto.yml
+          branch: main
+          workflow_conclusion: success
+          name: callisto
+          path: downloaded/callisto
+
+      - name: Download Callisto ASAR
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build-callisto-asar.yml
+          branch: main
+          workflow_conclusion: success
+          name: callisto-asar
+          path: downloaded/callisto-asar
+
+      - name: Download GPS
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build-gps.yml
+          branch: main
+          workflow_conclusion: success
+          name: gps
+          path: downloaded/gps
+
+      - name: Download PIXI
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build-pixi.yml
+          branch: main
+          workflow_conclusion: success
+          name: pixi
+          path: downloaded/pixi
+
+      - name: Download UberASM
+        uses: dawidd6/action-download-artifact@v11
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build-uberasm.yml
+          branch: main
+          workflow_conclusion: success
+          name: uberasm
+          path: downloaded/uberasm
+
+      - name: Package artifacts
+        shell: bash
+        run: |
+          mkdir -p release-files
+
+          for DIR in downloaded/*/; do
+            NAME=$(basename "$DIR")
+
+            echo "Packaging $NAME..."
+
+            tar -czf "release-files/${NAME}.tar.gz" \
+              -C "$DIR" .
+          done
+
+          echo "Release packages:"
+          ls -lh release-files/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.version }}
+          target_commitish: main
+          name: Release ${{ inputs.version }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: release-files/*.tar.gz

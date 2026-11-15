@@ -1,0 +1,39 @@
+name: Build ASAR
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git \
+            cmake \
+            build-essential \
+            gcc-multilib \
+            g++-multilib
+
+      - name: Build
+        run: bash build-callisto-asar.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: callisto-asar
+          path: artifacts/callisto-asar/
+          if-no-files-found: error
+          retention-days: 30
